@@ -18,27 +18,28 @@ class Autoencoder:
     def _build_model(self):
         input_layer = Input(shape=(28, 28, 1))
         zero_pad = ZeroPadding2D((2, 2))(input_layer)
-        conv1 = Conv2D(16, (3, 3), activation='relu', padding='same')(zero_pad)
-        pool1 = MaxPooling2D((2, 2), padding='same')(conv1)
-        conv2 = Conv2D(16, (3, 3), activation='relu', padding='same')(pool1)
-        pool2 = MaxPooling2D((2, 2), padding='same')(conv2)
-        conv3 = Conv2D(8, (3, 3), activation='relu', padding='same')(pool2)
-        pool3 = MaxPooling2D((2, 2), padding='same')(conv3)
-        conv4 = Conv2D(8, (3, 3), activation='relu', padding='same')(pool3)
-        encoder = MaxPooling2D((2, 2), padding='same')(conv4)
+        conv1 = Conv2D(112, (5, 5), activation='elu', padding='same')(zero_pad)
+        #pool1 = MaxPooling2D((2, 2), padding='same')(conv1)
+        # conv2 = Conv2D(112, (5, 5), activation='elu', padding='same')(pool1)
+        # pool2 = MaxPooling2D((2, 2), padding='same')(conv2)
+        # conv3 = Conv2D(32, (5, 5), activation='elu', padding='same')(pool2)
+        # pool3 = MaxPooling2D((2, 2), padding='same')(conv3)
+        # conv4 = Conv2D(8, (5, 5), activation='elu', padding='same')(pool3)
+        encoder = MaxPooling2D((2, 2), padding='same')(conv1)
 
-        conv_1 = Conv2D(8, (3, 3), activation='relu', padding='same')(encoder)
+        conv_1 = Conv2D(112, (5, 5), activation='elu', padding='same')(encoder)
         upsample1 = UpSampling2D((2, 2))(conv_1)
-        conv_2 = Conv2D(8, (3, 3), activation='relu', padding='same')(upsample1)
-        upsample2 = UpSampling2D((2, 2))(conv_2)
-        conv_3 = Conv2D(16, (3, 3), activation='relu', padding='same')(upsample2)
-        upsample3 = UpSampling2D((2, 2))(conv_3)
-        conv_4 = Conv2D(1, (3, 3), activation='relu', padding='same')(upsample3)
-        upsample4 = UpSampling2D((2, 2))(conv_4)
-        decoder = Cropping2D((2, 2))(upsample4)
+        # conv_2 = Conv2D(8, (5, 5), activation='elu', padding='same')(upsample1)
+        # upsample2 = UpSampling2D((2, 2))(conv_2)
+        # conv_3 = Conv2D(16, (5, 5), activation='elu', padding='same')(upsample2)
+        # upsample3 = UpSampling2D((2, 2))(conv_3)
+        conv_4 = Conv2D(1, (3, 3), activation='elu', padding='same')(upsample1)
+        #upsample4 = UpSampling2D((2, 2))(conv_4)
+        decoder = Cropping2D((2, 2))(conv_4)
 
         autoencoder = Model(input_layer, decoder)
-        autoencoder.compile(optimizer='adam', loss='mse')
+        optimizer = keras.optimizers.Adam(learning_rate=0.0029044)
+        autoencoder.compile(optimizer=optimizer, loss='mse')
         return autoencoder
 
     def summary(self):
@@ -72,7 +73,7 @@ def train_autoencoder(x_train, x_test):
     ]
 
     autoencoder = Autoencoder()
-    autoencoder.model.fit(x_train, x_train, epochs=100, batch_size=128, shuffle=True, validation_data=(x_test, x_test), callbacks=callbacks)
+    autoencoder.model.fit(x_train, x_train, epochs=50, batch_size=256, shuffle=True, validation_data=(x_test, x_test), callbacks=callbacks)
     return autoencoder
 
 def visualize_results(x_test, decoded_imgs, n=10, save_as='visualization_results.pdf'):
