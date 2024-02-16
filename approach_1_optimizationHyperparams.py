@@ -20,15 +20,15 @@ def build_autoencoder(hp):
 
     activation_enc = hp.Choice('activation_encoder', values=['relu', 'elu', 'sigmoid', 'tanh'])
     kernel_size_enc = hp.Choice('kernel_size_encoder', values=[3, 5])
-    for i in range(hp.Int('num_conv_layers_encoder', 1, 5)):
-        filters = hp.Int(f'conv_{i}_filters_encoder', min_value=16, max_value=128, step=16)
+    for i in range(hp.Int('num_conv_layers', 1, 5)):
+        filters = hp.Int(f'conv_{i}_filters', min_value=16, max_value=128, step=16)
         x = Conv2D(filters, (kernel_size_enc, kernel_size_enc), activation=activation_enc, padding='same')(x)
         x = MaxPooling2D((2, 2), padding='same')(x)
     
     activation_dec = hp.Choice('activation_decoder', values=['relu', 'elu', 'sigmoid', 'tanh'])
-    kernel_size_dec = hp.Choice('kernel_siz_decoder', values=[3, 5])
-    for i in reversed(range(hp.Int('num_conv_layers_decoder', 1, 5))):
-        filters = hp.Int(f'conv_{i}_filters_decoder', min_value=16, max_value=128, step=16)
+    kernel_size_dec = hp.Choice('kernel_size_decoder', values=[3, 5])
+    for i in reversed(range(hp.Int('num_conv_layers', 1, 5))):
+        filters = hp.Int(f'conv_{i}_filters', min_value=16, max_value=128, step=16)
         x = Conv2D(filters, (kernel_size_dec, kernel_size_dec), activation=activation_dec, padding='same')(x)
         x = UpSampling2D((2, 2))(x)
     
