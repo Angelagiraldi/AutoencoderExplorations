@@ -18,22 +18,38 @@ def build_autoencoder(hp):
     input_img = Input(shape=(28, 28, 1))
     x = ZeroPadding2D((2, 2))(input_img)
 
-    activation = hp.Choice('activation', values=['relu', 'elu', 'sigmoid', 'tanh'])
-    kernel_size = hp.Choice('kernel_size', values=[3, 5])
-    for i in range(hp.Int('num_conv_layers', 1, 5)):
-        filters = hp.Int(f'conv_{i}_filters', min_value=16, max_value=128, step=16)
-        x = Conv2D(filters, (kernel_size, kernel_size), activation=activation, padding='same')(x)
+    activation_enc = hp.Choice('activation_encoder', values=['relu', 'elu', 'sigmoid', 'tanh'])
+    kernel_size_enc = hp.Choice('kernel_size_encoder', values=[3, 5])
+    for i in range(hp.Int('num_conv_layers_encoder', 1, 5)):
+        filters = hp.Int(f'conv_{i}_filters_encoder', min_value=16, max_value=128, step=16)
+        x = Conv2D(filters, (kernel_size_enc, kernel_size_enc), activation=activation_enc, padding='same')(x)
         x = MaxPooling2D((2, 2), padding='same')(x)
     
-    for i in reversed(range(hp.Int('num_conv_layers', 1, 5))):
-        filters = hp.Int(f'conv_{i}_filters', min_value=16, max_value=128, step=16)
-        x = Conv2D(filters, (kernel_size, kernel_size), activation=activation, padding='same')(x)
+    activation_dec = hp.Choice('activation_decoder', values=['relu', 'elu', 'sigmoid', 'tanh'])
+    kernel_size_dec = hp.Choice('kernel_siz_decoder', values=[3, 5])
+    for i in reversed(range(hp.Int('num_conv_layers_decoder', 1, 5))):
+        filters = hp.Int(f'conv_{i}_filters_decoder', min_value=16, max_value=128, step=16)
+        x = Conv2D(filters, (kernel_size_dec, kernel_size_dec), activation=activation_dec, padding='same')(x)
         x = UpSampling2D((2, 2))(x)
     
-    x = Conv2D(1, (3, 3), activation='relu', padding='same')(x)
-    x = Cropping2D((2, 2))(x)
-    autoencoder = Model(input_img, x)
-    optimizer = keras.optimizers.Adam(hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log'))
+    x = Conv2D(1, (kernel_size_dec, kernel_size_dec), activation=activation_dec, padding='same')(x)
+    decoder = Cropping2D((2, 2))(x)
+    autoencoder = Model(input_img, decoder)
+    optimizer_choice = hp.Choice('optimizer', values=['adam', 'sgd', 'rmsprop'])
+
+    if optimizer_choice == 'adam':
+        lr = hp.Float('adam_learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')
+        optimizer = keras.optimizers.Adam(lr)
+    elif optimizer_choice == 'sgd':
+        lr = hp.Float('sgd_learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')
+        momentum = hp.Float('sgd_momentum', min_value=0.5, max_value=0.9)
+        optimizer = keras.optimizers.SGD(learning_rate=lr, momentum=momentum)
+    elif optimizer_choice == 'rmsprop':
+        lr = hp.Float('rmsprop_learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')
+        optimizer = keras.optimizers.RMSprop(lr)
+
+
+    #optimizer = keras.optimizers.Adam(hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log'))
     loss_function = hp.Choice('loss_function', values=['mean_squared_error', 'binary_crossentropy', 'mean_absolute_error'])
     autoencoder.compile(optimizer=optimizer, loss=loss_function)
     
@@ -88,9 +104,19 @@ if __name__ == "__main__":
         seed=42
     )
 
-    tuner.search(x_train, x_train, epochs=10, validation_split=0.2, callbacks=[EarlyStopping('val_loss', patience=5)])
+    tuner.search(x_train, x_train, epochs=10, validation_split=0.2, callbacks=[EarlyStopping('val_loss', patience=5)], , batch_size=128)
 
     best_model = tuner.get_best_models(num_models=1)[0]
     print("Summary of the best model found:")
     best_model.summary()
     
+    trials = tuner.oracle.get_best_trials(num_trials=5)  # Adjust num_trials as needed
+
+    for trial in trials:
+        print(f"Trial {trial.trial_id}:")
+        print("Hyperparameters:")
+        for hp, value in trial.hyperparameters.values.items():
+            print(f"{hp}: {value}")
+        print("Result:")
+        print(f"Best Validation Loss: {trial.score}")
+        print("-" * 30)
