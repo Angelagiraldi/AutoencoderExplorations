@@ -104,7 +104,7 @@ if __name__ == "__main__":
         seed=42
     )
 
-    tuner.search(x_train, x_train, epochs=10, validation_split=0.2, callbacks=[EarlyStopping('val_loss', patience=5)], batch_size=128)
+    tuner.search(x_train, x_train, epochs=10, validation_split=0.2, callbacks=[EarlyStopping('val_loss', patience=5)], batch_size=1024)
 
     best_model = tuner.get_best_models(num_models=1)[0]
     print("Summary of the best model found:")
